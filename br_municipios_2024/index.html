@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mapa RJ — Municípios</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: system-ui, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px 16px;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #1a1a2e;
+      margin-bottom: 20px;
+    }
+
+    #mapa-container {
+      width: 100%;
+      max-width: 860px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0, 0, 0, 0.10);
+      padding: 16px;
+    }
+
+    svg#mapa {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+
+    .municipio {
+      fill: #4a9eda;
+      stroke: #fff;
+      stroke-width: 0.5;
+      cursor: pointer;
+      transition: fill 0.15s;
+    }
+
+    .municipio.hover {
+      fill: #1a6ca8;
+    }
+
+    /* Modal */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.45);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #modal-overlay.ativo {
+      display: flex;
+    }
+
+    #modal {
+      background: #fff;
+      border-radius: 12px;
+      width: 100%;
+      max-width: 480px;
+      padding: 28px 32px;
+      box-shadow: 0 8px 40px rgba(0, 0, 0, 0.2);
+      position: relative;
+    }
+
+    #modal-titulo {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin-bottom: 4px;
+    }
+
+    #modal-cod {
+      font-size: 0.8rem;
+      color: #888;
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    .modal-campo {
+      display: flex;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 0.95rem;
+    }
+
+    .modal-campo:last-of-type {
+      border-bottom: none;
+    }
+
+    .modal-label {
+      color: #555;
+      font-weight: 500;
+    }
+
+    .modal-valor {
+      color: #1a1a2e;
+      text-align: right;
+      max-width: 60%;
+    }
+
+    #modal-link {
+      display: inline-block;
+      margin-top: 20px;
+      padding: 10px 20px;
+      background: #1a6ca8;
+      color: #fff;
+      border-radius: 8px;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    #modal-link:hover {
+      background: #14507d;
+    }
+
+    #modal-fechar {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: #aaa;
+      line-height: 1;
+    }
+
+    #modal-fechar:hover {
+      color: #333;
+    }
+
+    #loading {
+      color: #555;
+      font-size: 0.95rem;
+      margin-top: 40px;
+    }
+
+    /* Card de documentação */
+    #doc-card {
+      width: 100%;
+      max-width: 860px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0, 0, 0, 0.10);
+      padding: 32px 36px;
+      margin-top: 24px;
+      margin-bottom: 40px;
+    }
+
+    #doc-card h2 {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #1a1a2e;
+      margin: 28px 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 2px solid #e8edf2;
+    }
+
+    #doc-card h2:first-child {
+      margin-top: 0;
+    }
+
+    #doc-card h3 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #333;
+      margin: 18px 0 8px;
+    }
+
+    #doc-card p {
+      font-size: 0.92rem;
+      color: #444;
+      line-height: 1.65;
+      margin-bottom: 10px;
+    }
+
+    #doc-card pre {
+      background: #f5f7fa;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 0.82rem;
+      overflow-x: auto;
+      margin: 10px 0 14px;
+      line-height: 1.6;
+      color: #2d3748;
+    }
+
+    #doc-card code {
+      font-family: 'Consolas', 'Fira Mono', monospace;
+      background: #eef2f7;
+      padding: 2px 5px;
+      border-radius: 4px;
+      font-size: 0.85em;
+      color: #c0392b;
+    }
+
+    #doc-card pre code {
+      background: none;
+      padding: 0;
+      color: inherit;
+    }
+
+    #doc-card table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.88rem;
+      margin: 10px 0 14px;
+    }
+
+    #doc-card th {
+      background: #f0f4f8;
+      text-align: left;
+      padding: 8px 12px;
+      font-weight: 600;
+      color: #333;
+      border-bottom: 2px solid #dde3ea;
+    }
+
+    #doc-card td {
+      padding: 8px 12px;
+      border-bottom: 1px solid #edf0f3;
+      color: #444;
+      vertical-align: top;
+    }
+
+    #doc-card tr:last-child td {
+      border-bottom: none;
+    }
+
+    .doc-passo {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+
+    .doc-passo-num {
+      background: #1a6ca8;
+      color: #fff;
+      border-radius: 50%;
+      width: 26px;
+      height: 26px;
+      min-width: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    .doc-passo-body {
+      flex: 1;
+    }
+
+    .doc-passo-body strong {
+      display: block;
+      font-size: 0.92rem;
+      color: #1a1a2e;
+      margin-bottom: 4px;
+    }
+
+    .doc-passo-body p {
+      margin: 0;
+      font-size: 0.88rem;
+      color: #555;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Municípios do Estado do Rio de Janeiro</h1>
+
+  <div id="mapa-container">
+    <svg id="mapa"></svg>
+    <p id="loading">Carregando shapefile...</p>
+  </div>
+
+  <!-- Card de documentação -->
+  <div id="doc-card">
+
+    <h2>Estrutura de Arquivos</h2>
+    <pre>br_municipios_2024/
+├── index.html           — Página principal (HTML + CSS + modal)
+├── app.js               — Lógica: carrega shapefile, renderiza SVG, abre modal
+├── D3.js                — Lib D3 v7 (renderização SVG e projeção geográfica)
+├── shp.min.js           — Lib shpjs (lê .shp e .dbf no browser)
+├── municipios_rj.json   — Dados dos municípios (EDITAR AQUI)
+├── BR_Municipios_2024.shp   — Geometrias dos municípios (IBGE 2024)
+├── BR_Municipios_2024.dbf   — Atributos: CD_MUN, NM_MUN, CD_UF
+├── BR_Municipios_2024.shx   — Índice do shapefile
+├── BR_Municipios_2024.prj   — Definição de projeção cartográfica
+└── BR_Municipios_2024.cpg   — Encoding dos caracteres</pre>
+
+    <h2>Fluxo Técnico</h2>
+    <div class="doc-passo">
+      <div class="doc-passo-num">1</div>
+      <div class="doc-passo-body">
+        <strong>fetch('municipios_rj.json')</strong>
+        <p>Carrega os dados editáveis dos municípios (população, área, observações, link).</p>
+      </div>
+    </div>
+    <div class="doc-passo">
+      <div class="doc-passo-num">2</div>
+      <div class="doc-passo-body">
+        <strong>shp(baseUrl + 'BR_Municipios_2024')</strong>
+        <p>Lê <code>.shp</code> + <code>.dbf</code> + <code>.prj</code> + <code>.cpg</code> via shpjs. Retorna GeoJSON
+          com todas as features do Brasil.</p>
+      </div>
+    </div>
+    <div class="doc-passo">
+      <div class="doc-passo-num">3</div>
+      <div class="doc-passo-body">
+        <strong>Filtra CD_UF === '33'</strong>
+        <p>Mantém apenas os 92 municípios do Rio de Janeiro.</p>
+      </div>
+    </div>
+    <div class="doc-passo">
+      <div class="doc-passo-num">4</div>
+      <div class="doc-passo-body">
+        <strong>d3.geoMercator().fitSize([800, 700], rj)</strong>
+        <p>Calcula a projeção geográfica ajustada ao tamanho do SVG.</p>
+      </div>
+    </div>
+    <div class="doc-passo">
+      <div class="doc-passo-num">5</div>
+      <div class="doc-passo-body">
+        <strong>svg.selectAll('path').data(rj.features)</strong>
+        <p>Cria um <code>&lt;path&gt;</code> SVG por município com <code>data-cod</code> (CD_MUN) e
+          <code>data-nome</code> (NM_MUN).
+        </p>
+      </div>
+    </div>
+    <div class="doc-passo">
+      <div class="doc-passo-num">6</div>
+      <div class="doc-passo-body">
+        <strong>Evento 'click' no path</strong>
+        <p>Busca o <code>CD_MUN</code> no JSON, preenche o modal e abre.</p>
+      </div>
+    </div>
+
+    <h2>Como Adicionar Dados aos Municípios</h2>
+    <p>Edite o arquivo <code>municipios_rj.json</code>. Cada chave é o código IBGE de 7 dígitos.</p>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Campo</th>
+          <th>Tipo</th>
+          <th>Descrição</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><code>nome</code></td>
+          <td>texto</td>
+          <td>Nome exibido no modal (preenchido, não altere)</td>
+        </tr>
+        <tr>
+          <td><code>populacao</code></td>
+          <td>texto</td>
+          <td>Ex: <code>"6.211.223"</code></td>
+        </tr>
+        <tr>
+          <td><code>area_km2</code></td>
+          <td>texto</td>
+          <td>Ex: <code>"1.200,18"</code></td>
+        </tr>
+        <tr>
+          <td><code>observacoes</code></td>
+          <td>texto</td>
+          <td>Qualquer informação adicional</td>
+        </tr>
+        <tr>
+          <td><code>link</code></td>
+          <td>URL</td>
+          <td>Se preenchido, exibe botão "Ver mais" no modal</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <h3>Exemplo preenchido</h3>
+    <pre>"3304557": {
+  "nome": "Rio de Janeiro",
+  "populacao": "6.211.223",
+  "area_km2": "1.200,18",
+  "observacoes": "Capital do estado até 1960.",
+  "link": "https://www.rio.rj.gov.br"
+}</pre>
+
+    <h2>Como Adicionar Novos Campos ao Modal</h2>
+
+    <h3>Passo 1 — Adicionar o campo no JSON</h3>
+    <pre>"3304557": {
+  ...
+  "pib": "R$ 389 bilhões",
+  "idh": "0,799"
+}</pre>
+
+    <h3>Passo 2 — Adicionar a linha no modal (index.html)</h3>
+    <pre>&lt;div class="modal-campo"&gt;
+  &lt;span class="modal-label"&gt;PIB&lt;/span&gt;
+  &lt;span class="modal-valor" id="modal-pib"&gt;&lt;/span&gt;
+&lt;/div&gt;
+&lt;div class="modal-campo"&gt;
+  &lt;span class="modal-label"&gt;IDH&lt;/span&gt;
+  &lt;span class="modal-valor" id="modal-idh"&gt;&lt;/span&gt;
+&lt;/div&gt;</pre>
+
+    <h3>Passo 3 — Preencher o campo em app.js</h3>
+    <pre>document.getElementById('modal-pib').textContent = info.pib || '—';
+document.getElementById('modal-idh').textContent = info.idh || '—';</pre>
+
+    <h2>Origem dos Dados Geográficos</h2>
+    <p>Shapefile: <strong>IBGE — Malhas Municipais 2024</strong>. Código do município: campo <code>CD_MUN</code> do
+      <code>.dbf</code> (7 dígitos). Filtro do estado: <code>CD_UF === '33'</code>.
+    </p>
+
+  </div>
+
+  <!-- Modal -->
+  <div id="modal-overlay">
+    <div id="modal">
+      <button id="modal-fechar" aria-label="Fechar">&times;</button>
+      <div id="modal-titulo"></div>
+      <span id="modal-cod"></span>
+      <div class="modal-campo">
+        <span class="modal-label">População</span>
+        <span class="modal-valor" id="modal-populacao"></span>
+      </div>
+      <div class="modal-campo">
+        <span class="modal-label">Área (km²)</span>
+        <span class="modal-valor" id="modal-area"></span>
+      </div>
+      <div class="modal-campo">
+        <span class="modal-label">Observações</span>
+        <span class="modal-valor" id="modal-obs"></span>
+      </div>
+      <a id="modal-link" href="#" target="_blank">Ver mais</a>
+    </div>
+  </div>
+
+  <script src="D3.js"></script>
+  <script src="shp.min.js"></script>
+  <script>
+    // Remove loading após scripts carregados
+    document.getElementById('loading').textContent = 'Processando mapa...';
+  </script>
+  <script src="app.js"></script>
+  <script>
+    // Esconde loading quando o mapa renderizar
+    const observer = new MutationObserver(() => {
+      if (document.querySelector('#mapa path')) {
+        document.getElementById('loading').style.display = 'none';
+        observer.disconnect();
+      }
+    });
+    observer.observe(document.getElementById('mapa'), { childList: true });
+  </script>
+
+</body>
+
+</html>
