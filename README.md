@@ -28,7 +28,7 @@ D3.js	Biblioteca para manipulação de dados e renderização SVG
 SVG	Formato vetorial para o mapa
 IBGE	Fonte oficial dos dados cartográficos e territoriais
 
-
+```
 📁 Estrutura do Projeto
 plain
 projeto55200/
@@ -47,6 +47,8 @@ projeto55200/
 ├── 📄 README.md               # Este arquivo
 └── 📄 .gitattributes           # Configurações do Git
 
+
+```
 
 📊 Fonte de Dados
 Os dados cartográficos utilizados neste projeto são provenientes do Instituto Brasileiro de Geografia e Estatística (IBGE) — a principal fonte oficial de informações geoespaciais e estatísticas do Brasil.
